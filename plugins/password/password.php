@@ -117,6 +117,7 @@ class password extends rcube_plugin
 
         $rcmail = rcmail::get_instance();
         $rcmail->output->set_pagetitle($this->gettext('changepasswd'));
+        $rcmail->output->command('display_message', 'inside password_save', 'error');
 
         $form_disabled   = $rcmail->config->get('password_disabled');
         $confirm         = $rcmail->config->get('password_confirm_current');

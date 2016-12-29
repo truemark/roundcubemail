@@ -305,20 +305,22 @@ class password extends rcube_plugin
 
     private function _save($curpass, $passwd)
     {
+        $rcmail = rcmail::get_instance();
+        $rcmail->output->command('display_message', 'inside save function', 'error');
+
         $config = rcmail::get_instance()->config;
-        $driver = $config->get('password_driver', 'sql');
+//        $driver = $config->get('password_driver', 'sql');
 //        $url = $config->get('api_url', 'https://www.truemark.email/api');
 //        $url = $url . '/mailbox/reset_password';
         $url = 'http://localhost:8080/api/mailbox/reset_password';
-        $class  = "rcube_{$driver}_password";
-        $file   = $this->home . "/drivers/$driver.php";
+//        $class  = "rcube_{$driver}_password";
+//        $file   = $this->home . "/drivers/$driver.php";
 
         $username = $_SESSION['user_id'];
 
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
         $post_data = http_build_query($data);
 
-        $rcmail = rcmail::get_instance();
         $rcmail->output->command('display_message', $username . $passwd . $curpass, 'error');
 
         $context_options = array (

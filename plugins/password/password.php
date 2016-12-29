@@ -26,6 +26,8 @@ define('PASSWORD_ERROR', 2);
 define('PASSWORD_CONNECT_ERROR', 3);
 define('PASSWORD_IN_HISTORY', 4);
 define('PASSWORD_SUCCESS', 0);
+define('USERNAME_INVALID', 5);
+define('USERNAME_NOTFOUND', 6);
 
 /**
  * Change password plugin
@@ -305,39 +307,78 @@ class password extends rcube_plugin
     {
         $config = rcmail::get_instance()->config;
         $driver = $config->get('password_driver', 'sql');
+        $url = $config->get('api_url', 'https://www.truemark.email/api');
+        $url = $url . '/mailbox/reset_password';
         $class  = "rcube_{$driver}_password";
         $file   = $this->home . "/drivers/$driver.php";
 
-        if (!file_exists($file)) {
-            rcube::raise_error(array(
-                'code' => 600,
-                'type' => 'php',
-                'file' => __FILE__, 'line' => __LINE__,
-                'message' => "Password plugin: Unable to open driver file ($file)"
-            ), true, false);
-            return $this->gettext('internalerror');
+        $username = $_SESSION['user_id'];
+
+        $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
+        $post_data = http_build_query($data);
+
+        $context_options = array (
+            'http' => array (
+                'method' => 'POST',
+                'header'=> "Content-type: application/x-www-form-urlencoded\r\n"
+                    . "Content-Length: " . strlen($post_data) . "\r\n",
+                'content' => $post_data
+            )
+        );
+
+        $context = stream_context_create($context_options);
+        $response = @file_get_contents($url, false, $context);
+        $result = PASSWORD_ERROR;
+        if($response === false) {
+            $status_code = explode(" ", $http_response_header[0])[1];
+            switch ($status_code) {
+                case "400":
+                    $result = USERNAME_INVALID;
+                    break;
+                case "500":
+                    $result = PASSWORD_ERROR;
+                    break;
+                case "404":
+                    $result = USERNAME_NOTFOUND;
+                    break;
+                default:
+                    $result = PASSWORD_ERROR;
+            }
+        } else {
+            $result = PASSWORD_SUCCESS;
         }
 
-        include_once $file;
 
-        if (!class_exists($class, false) || !method_exists($class, 'save')) {
-            rcube::raise_error(array(
-                'code' => 600,
-                'type' => 'php',
-                'file' => __FILE__, 'line' => __LINE__,
-                'message' => "Password plugin: Broken driver $driver"
-            ), true, false);
-            return $this->gettext('internalerror');
-        }
-
-        $object = new $class;
-        $result = $object->save($curpass, $passwd);
-        $message = '';
-
-        if (is_array($result)) {
-            $message = $result['message'];
-            $result  = $result['code'];
-        }
+//        if (!file_exists($file)) {
+//            rcube::raise_error(array(
+//                'code' => 600,
+//                'type' => 'php',
+//                'file' => __FILE__, 'line' => __LINE__,
+//                'message' => "Password plugin: Unable to open driver file ($file)"
+//            ), true, false);
+//            return $this->gettext('internalerror');
+//        }
+//
+//        include_once $file;
+//
+//        if (!class_exists($class, false) || !method_exists($class, 'save')) {
+//            rcube::raise_error(array(
+//                'code' => 600,
+//                'type' => 'php',
+//                'file' => __FILE__, 'line' => __LINE__,
+//                'message' => "Password plugin: Broken driver $driver"
+//            ), true, false);
+//            return $this->gettext('internalerror');
+//        }
+//
+//        $object = new $class;
+//        $result = $object->save($curpass, $passwd);
+//        $message = '';
+//
+//        if (is_array($result)) {
+//            $message = $result['message'];
+//            $result  = $result['code'];
+//        }
 
         switch ($result) {
             case PASSWORD_SUCCESS:
@@ -351,14 +392,20 @@ class password extends rcube_plugin
             case PASSWORD_IN_HISTORY:
                 $reason = $this->gettext('passwdinhistory');
                 break;
+            case USERNAME_INVALID:
+                $reason = 'Username provided is invalid';
+                break;
+            case USERNAME_NOTFOUND:
+                $reason = 'Please enter correct current password.';
+                break;
             case PASSWORD_ERROR:
             default:
                 $reason = $this->gettext('internalerror');
         }
 
-        if ($message) {
-            $reason .= ' ' . $message;
-        }
+//        if ($message) {
+//            $reason .= ' ' . $message;
+//        }
 
         return $reason;
     }

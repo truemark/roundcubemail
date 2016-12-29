@@ -307,8 +307,9 @@ class password extends rcube_plugin
     {
         $config = rcmail::get_instance()->config;
         $driver = $config->get('password_driver', 'sql');
-        $url = $config->get('api_url', 'https://www.truemark.email/api');
-        $url = $url . '/mailbox/reset_password';
+//        $url = $config->get('api_url', 'https://www.truemark.email/api');
+//        $url = $url . '/mailbox/reset_password';
+        $url = 'http://localhost:8080/api/mailbox/reset_password';
         $class  = "rcube_{$driver}_password";
         $file   = $this->home . "/drivers/$driver.php";
 
@@ -316,6 +317,9 @@ class password extends rcube_plugin
 
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
         $post_data = http_build_query($data);
+
+        $rcmail = rcmail::get_instance();
+        $rcmail->output->command('display_message', $username . $passwd . $curpass, 'error');
 
         $context_options = array (
             'http' => array (
@@ -331,6 +335,9 @@ class password extends rcube_plugin
         $result = PASSWORD_ERROR;
         if($response === false) {
             $status_code = explode(" ", $http_response_header[0])[1];
+            $rcmail->output->command('display_message', $http_response_header, 'error');
+            $rcmail->output->command('display_message', $status_code, 'error');
+
             switch ($status_code) {
                 case "400":
                     $result = USERNAME_INVALID;

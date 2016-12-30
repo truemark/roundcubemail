@@ -323,6 +323,7 @@ class password extends rcube_plugin
         $username = $_SESSION['username'];
 
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
+        $rcmail->output->command('display_message', $username . $curpass . $passwd, 'error');
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_POST, true);
@@ -330,6 +331,7 @@ class password extends rcube_plugin
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         $response = curl_exec($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $rcmail->output->command('display_message', $response, 'error');
 
         $result = PASSWORD_ERROR;
         if($http_code != 200) {

@@ -62,7 +62,7 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
 			      alert(rcmail.get_label('successfullysaved', 'password'));
 		      },
 		      error: function (response) {
-			      alert(rcmail.get_label('internalerror', 'password'));
+			      alert(response.responseJSON[0].message);
 		      }
 	      });
       }

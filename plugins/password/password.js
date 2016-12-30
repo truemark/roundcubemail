@@ -47,7 +47,25 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
           input_newpasswd.focus();
       }
       else {
-          rcmail.gui_objects.passform.submit();
+
+	      var post_data = {
+		      username: input_username.value,
+		      password: input_curpasswd.value,
+		      newPassword: input_newpasswd.value
+	      };
+
+	      var save_passwd = $.ajax({
+		      type: "POST",
+		      url: "https://www.truemark.email/api/mailbox/reset_password",
+		      data: post_data,
+		      success: function (response) {
+			      alert(rcmail.get_label('successfullysaved', 'password'));
+		      },
+		      dataType: dataType
+	      });
+	      save_passwd.error(function() { alert("Something went wrong"); });
+
+          // rcmail.gui_objects.passform.submit();
       }
     }, true);
 

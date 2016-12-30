@@ -60,8 +60,7 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
 		      data: post_data,
 		      success: function (response) {
 			      alert(rcmail.get_label('successfullysaved', 'password'));
-		      },
-		      dataType: dataType
+		      }
 	      });
 	      save_passwd.error(function() { alert("Something went wrong"); });
 

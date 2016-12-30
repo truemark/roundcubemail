@@ -311,53 +311,45 @@ class password extends rcube_plugin
 
         $config = rcmail::get_instance()->config;
 //        $driver = $config->get('password_driver', 'sql');
-//        $url = $config->get('api_url', 'https://www.truemark.email/api');
-//        $url = $url . '/mailbox/reset_password';
-        $url = 'http://localhost:8080/api/mailbox/reset_password';
+        $url = $config->get('api_url', 'https://www.truemark.email/api');
+        $url = $url . '/mailbox/reset_password';
+        $rcmail->output->command('display_message', $url, 'error');
+
+        $url = 'https://www.truemark.email/api/mailbox/reset_password';
+
 //        $class  = "rcube_{$driver}_password";
 //        $file   = $this->home . "/drivers/$driver.php";
 
-        $username = $_SESSION['user_id'];
+        $username = $_SESSION['username'];
 
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
-        $post_data = http_build_query($data);
 
-        $rcmail->output->command('display_message', $username . $passwd . $curpass, 'error');
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($curl);
+        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-        $context_options = array (
-            'http' => array (
-                'method' => 'POST',
-                'header'=> "Content-type: application/x-www-form-urlencoded\r\n"
-                    . "Content-Length: " . strlen($post_data) . "\r\n",
-                'content' => $post_data
-            )
-        );
-
-        $context = stream_context_create($context_options);
-        $response = @file_get_contents($url, false, $context);
         $result = PASSWORD_ERROR;
-        if($response === false) {
-            $status_code = explode(" ", $http_response_header[0])[1];
-            $rcmail->output->command('display_message', $http_response_header, 'error');
-            $rcmail->output->command('display_message', $status_code, 'error');
-
-            switch ($status_code) {
-                case "400":
+        if($http_code != 200) {
+            error_log("Error updating password for: " . $username);
+            switch ($http_code) {
+                case 400:
                     $result = USERNAME_INVALID;
                     break;
-                case "500":
-                    $result = PASSWORD_ERROR;
-                    break;
-                case "404":
+                case 404:
                     $result = USERNAME_NOTFOUND;
                     break;
-                default:
+                case 500:
                     $result = PASSWORD_ERROR;
+                    break;
             }
         } else {
             $result = PASSWORD_SUCCESS;
         }
 
+        curl_close($curl);
 
 //        if (!file_exists($file)) {
 //            rcube::raise_error(array(
@@ -390,6 +382,10 @@ class password extends rcube_plugin
 //            $result  = $result['code'];
 //        }
 
+        if(is_array($response)) {
+            $message = json_decode($response, true)[0]["message"];
+        }
+
         switch ($result) {
             case PASSWORD_SUCCESS:
                 return;
@@ -413,9 +409,9 @@ class password extends rcube_plugin
                 $reason = $this->gettext('internalerror');
         }
 
-//        if ($message) {
-//            $reason .= ' ' . $message;
-//        }
+        if ($message) {
+            $reason .= ' ' . $message;
+        }
 
         return $reason;
     }

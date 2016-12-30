@@ -317,6 +317,7 @@ class password extends rcube_plugin
 
         $url = 'https://www.truemark.email/api/mailbox/reset_password';
 
+
 //        $class  = "rcube_{$driver}_password";
 //        $file   = $this->home . "/drivers/$driver.php";
 
@@ -325,13 +326,35 @@ class password extends rcube_plugin
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
         $rcmail->output->command('display_message', $username . $curpass . $passwd, 'error');
 
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+//        $curl = curl_init($url);
+//        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+//        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+//        curl_setopt($curl, CURLOPT_POST, true);
+//        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
+//        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+//        $response = curl_exec($curl);
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://www.truemark.email/api/mailbox/reset_password",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => http_build_query($data),
+            CURLOPT_HTTPHEADER => array(
+                "cache-control: no-cache",
+                "content-type: application/x-www-form-urlencoded"
+            ),
+        ));
+
         $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $rcmail->output->command('display_message', $response, 'error');
         $rcmail->output->command('display_message', curl_error($curl), 'error');

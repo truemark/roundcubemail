@@ -217,6 +217,19 @@ class password extends rcube_plugin
 
         $table = new html_table(array('cols' => 2));
 
+        $field_id = 'username';
+        $input_username = new html_inputfield(array(
+            'name'         => '_username',
+            'id'           => $field_id,
+            'size'         => 30,
+            'autocomplete' => 'off',
+            'value' => $_SESSION['username'],
+        ));
+
+        $table->add('title', html::label($field_id, rcube::Q("Username")));
+        $table->add(null, $input_username->show());
+
+
         if ($rcmail->config->get('password_confirm_current')) {
             // show current password selection
             $field_id = 'curpasswd';

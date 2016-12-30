@@ -28,6 +28,7 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
         var input_curpasswd = rcube_find_object('_curpasswd'),
             input_newpasswd = rcube_find_object('_newpasswd'),
             input_confpasswd = rcube_find_object('_confpasswd');
+           var input_username = rcube_find_object('_username');
 
       if (input_curpasswd && input_curpasswd.value == '') {
           alert(rcmail.get_label('nocurpassword', 'password'));

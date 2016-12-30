@@ -332,6 +332,7 @@ class password extends rcube_plugin
         $response = curl_exec($curl);
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $rcmail->output->command('display_message', $response, 'error');
+        $rcmail->output->command('display_message', curl_error($curl), 'error');
 
         $result = PASSWORD_ERROR;
         if($http_code != 200) {

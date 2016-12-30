@@ -353,11 +353,10 @@ class password extends rcube_plugin
         $response = curl_exec($curl);
         $err = curl_error($curl);
 
-        curl_close($curl);
 
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $rcmail->output->command('display_message', $response, 'error');
-        $rcmail->output->command('display_message', curl_error($curl), 'error');
+        $rcmail->output->command('display_message', $err, 'error');
 
         $result = PASSWORD_ERROR;
         if($http_code != 200) {
@@ -378,6 +377,7 @@ class password extends rcube_plugin
         }
 
         curl_close($curl);
+
 
 //        if (!file_exists($file)) {
 //            rcube::raise_error(array(

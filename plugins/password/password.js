@@ -27,8 +27,9 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
     rcmail.register_command('plugin.password-save', function() {
         var input_curpasswd = rcube_find_object('_curpasswd'),
             input_newpasswd = rcube_find_object('_newpasswd'),
-            input_confpasswd = rcube_find_object('_confpasswd');
-           var input_username = rcube_find_object('_username');
+            input_confpasswd = rcube_find_object('_confpasswd'),
+            input_username = rcube_find_object('_username'),
+	        input_url = rcube_find_object('_api_url');
 
       if (input_curpasswd && input_curpasswd.value == '') {
           alert(rcmail.get_label('nocurpassword', 'password'));
@@ -48,23 +49,24 @@ window.rcmail && rcmail.addEventListener('init', function(evt) {
       }
       else {
 
-	      var post_data = {
-		      username: input_username.value,
-		      password: input_curpasswd.value,
-		      newPassword: input_newpasswd.value
-	      };
+          var post_data = {
+              username: input_username.value,
+              password: input_curpasswd.value,
+              newPassword: input_newpasswd.value
+          };
 
-	      var save_passwd = $.ajax({
-		      type: "POST",
-		      url: "https://www.truemark.email/api/mailbox/reset_password",
-		      data: post_data,
-		      success: function (response) {
-			      alert(rcmail.get_label('successfullysaved', 'password'));
-		      },
-		      error: function (response) {
-			      alert(response.responseJSON[0].message);
-		      }
-	      });
+          var save_passwd = $.ajax({
+              type: "POST",
+              url: input_url.value,
+              data: post_data,
+              success: function (response) {
+                  alert(rcmail.get_label('passwdupdated', 'password'));
+              },
+              error: function (response) {
+                  alert(response.responseJSON[0].message);
+              }
+          });
+          // rcmail.gui_objects.passform.submit();
       }
     }, true);
 

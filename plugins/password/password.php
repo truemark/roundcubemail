@@ -117,7 +117,6 @@ class password extends rcube_plugin
 
         $rcmail = rcmail::get_instance();
         $rcmail->output->set_pagetitle($this->gettext('changepasswd'));
-        $rcmail->output->command('display_message', 'inside password_save', 'error');
 
         $form_disabled   = $rcmail->config->get('password_disabled');
         $confirm         = $rcmail->config->get('password_confirm_current');
@@ -217,6 +216,14 @@ class password extends rcube_plugin
 
         $table = new html_table(array('cols' => 2));
 
+        $field_id = 'api_url';
+        $input_url = new html_hiddenfield(array(
+            'name' => '_api_url',
+            'id' => $field_id,
+            'value' => $rcmail->config->get("api_url") . $rcmail->config->get("password_reset_url")
+        ));
+        $table->add(null, $input_url->show());
+
         $field_id = 'username';
         $input_username = new html_inputfield(array(
             'name'         => '_username',
@@ -224,11 +231,11 @@ class password extends rcube_plugin
             'size'         => 30,
             'autocomplete' => 'off',
             'value' => $_SESSION['username'],
+            'disabled' => 'disabled',
         ));
 
         $table->add('title', html::label($field_id, rcube::Q("Username")));
         $table->add(null, $input_username->show());
-
 
         if ($rcmail->config->get('password_confirm_current')) {
             // show current password selection
@@ -319,141 +326,14 @@ class password extends rcube_plugin
 
     private function _save($curpass, $passwd)
     {
-        $rcmail = rcmail::get_instance();
-        $rcmail->output->command('display_message', 'inside save function', 'error');
-
         $config = rcmail::get_instance()->config;
-//        $driver = $config->get('password_driver', 'sql');
         $url = $config->get('api_url', 'https://www.truemark.email/api');
         $url = $url . '/mailbox/reset_password';
-        $rcmail->output->command('display_message', $url, 'error');
-
-        $url = 'https://www.truemark.email/api/mailbox/reset_password';
-
-
-//        $class  = "rcube_{$driver}_password";
-//        $file   = $this->home . "/drivers/$driver.php";
 
         $username = $_SESSION['username'];
-
         $data = array ('username' => $username, 'password' => $curpass, 'newPassword' => $passwd);
-        $rcmail->output->command('display_message', $username . $curpass . $passwd, 'error');
 
-//        $curl = curl_init($url);
-//        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-//        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-//        curl_setopt($curl, CURLOPT_POST, true);
-//        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data));
-//        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-//        $response = curl_exec($curl);
-        $curl = curl_init();
-
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => "https://www.truemark.email/api/mailbox/reset_password",
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => http_build_query($data),
-            CURLOPT_HTTPHEADER => array(
-                "cache-control: no-cache",
-                "content-type: application/x-www-form-urlencoded"
-            ),
-        ));
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-
-
-        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $rcmail->output->command('display_message', $response, 'error');
-        $rcmail->output->command('display_message', $err, 'error');
-
-        $result = PASSWORD_ERROR;
-        if($http_code != 200) {
-            error_log("Error updating password for: " . $username);
-            switch ($http_code) {
-                case 400:
-                    $result = USERNAME_INVALID;
-                    break;
-                case 404:
-                    $result = USERNAME_NOTFOUND;
-                    break;
-                case 500:
-                    $result = PASSWORD_ERROR;
-                    break;
-            }
-        } else {
-            $result = PASSWORD_SUCCESS;
-        }
-
-        curl_close($curl);
-
-
-//        if (!file_exists($file)) {
-//            rcube::raise_error(array(
-//                'code' => 600,
-//                'type' => 'php',
-//                'file' => __FILE__, 'line' => __LINE__,
-//                'message' => "Password plugin: Unable to open driver file ($file)"
-//            ), true, false);
-//            return $this->gettext('internalerror');
-//        }
-//
-//        include_once $file;
-//
-//        if (!class_exists($class, false) || !method_exists($class, 'save')) {
-//            rcube::raise_error(array(
-//                'code' => 600,
-//                'type' => 'php',
-//                'file' => __FILE__, 'line' => __LINE__,
-//                'message' => "Password plugin: Broken driver $driver"
-//            ), true, false);
-//            return $this->gettext('internalerror');
-//        }
-//
-//        $object = new $class;
-//        $result = $object->save($curpass, $passwd);
-//        $message = '';
-//
-//        if (is_array($result)) {
-//            $message = $result['message'];
-//            $result  = $result['code'];
-//        }
-
-        if(is_array($response)) {
-            $message = json_decode($response, true)[0]["message"];
-        }
-
-        switch ($result) {
-            case PASSWORD_SUCCESS:
-                return;
-            case PASSWORD_CRYPT_ERROR:
-                $reason = $this->gettext('crypterror');
-                break;
-            case PASSWORD_CONNECT_ERROR:
-                $reason = $this->gettext('connecterror');
-                break;
-            case PASSWORD_IN_HISTORY:
-                $reason = $this->gettext('passwdinhistory');
-                break;
-            case USERNAME_INVALID:
-                $reason = 'Username provided is invalid';
-                break;
-            case USERNAME_NOTFOUND:
-                $reason = 'Please enter correct current password.';
-                break;
-            case PASSWORD_ERROR:
-            default:
-                $reason = $this->gettext('internalerror');
-        }
-
-        if ($message) {
-            $reason .= ' ' . $message;
-        }
-
+        $reason = '';
         return $reason;
     }
 

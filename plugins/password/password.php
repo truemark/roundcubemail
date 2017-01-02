@@ -206,7 +206,8 @@ class password extends rcube_plugin
         $rcmail->output->add_label(
             'password.nopassword',
             'password.nocurpassword',
-            'password.passwordinconsistency'
+            'password.passwordinconsistency',
+            'password.passwdupdated'
         );
 
         $form_disabled = $rcmail->config->get('password_disabled');

@@ -222,6 +222,7 @@ class password extends rcube_plugin
             'id' => $field_id,
             'value' => $rcmail->config->get("api_url") . $rcmail->config->get("password_reset_url")
         ));
+        $table->add('title', " ");
         $table->add(null, $input_url->show());
 
         $field_id = 'username';

@@ -751,6 +751,10 @@ a.iconlink.upload {
 	background: linear-gradient(to bottom, #404040 0%, #060606 100%);
 }
 
+#topnav img{
+	height: 100%;
+}
+
 #topline a,
 #topnav a {
 	color: #eee;
@@ -1794,6 +1798,10 @@ ul.proplist li {
 	background: url(images/login_shadow.png) top center no-repeat;
 	margin-top: -3px;
 	padding-top: 10px;
+}
+
+#login-form .box-inner img {
+	width: 20%
 }
 
 #login-form .noscriptwarning {

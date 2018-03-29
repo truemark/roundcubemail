@@ -39,5 +39,6 @@ $messages['passwinhistory'] = 'This password has already been used previously.';
 $messages['samepasswd'] = 'New password have to be different from the old one.';
 $messages['passwdexpirewarning'] = 'Warning! Your password will expire soon, change it before $expirationdatetime.';
 $messages['passwdexpired'] = 'Your password has expired, you have to change it now!';
+$messages['passwdconstraintviolation'] = 'Password constraint violation. Password probably too weak.';
 $messages['passwdupdated'] = 'Password updated successfully.';
 

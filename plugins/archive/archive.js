@@ -1,6 +1,5 @@
 /**
  * Archive plugin script
- * @version 3.0
  *
  * @licstart  The following is the entire license notice for the
  * JavaScript code in this file.
@@ -58,7 +57,24 @@ if (window.rcmail) {
 
     // set css style for archive folder
     var li;
-    if (rcmail.env.archive_folder && (li = rcmail.get_folder_li(rcmail.env.archive_folder, '', true)))
-      $(li).addClass('archive');
+    if (rcmail.env.archive_folder) {
+      // in Settings > Folders
+      if (rcmail.subscription_list)
+        li = rcmail.subscription_list.get_item(rcmail.env.archive_folder);
+      // in folders list
+      else
+        li = rcmail.get_folder_li(rcmail.env.archive_folder, '', true);
+
+      if (li) {
+        $(li).addClass('archive');
+
+        // in folder selector popup
+        rcmail.addEventListener('menu-open', function(p) {
+          if (p.name == 'folder-selector') {
+            $('a[rel="' + $('a', li).attr('rel') + '"]', p.obj).parent().addClass('archive');
+          }
+        });
+      }
+    }
   });
 }

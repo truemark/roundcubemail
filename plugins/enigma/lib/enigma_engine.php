@@ -164,11 +164,7 @@ class enigma_engine
         case self::SIGN_MODE_MIME:
             $pgp_mode = Crypt_GPG::SIGN_MODE_DETACHED;
             break;
-/*
-        case self::SIGN_MODE_SEPARATE:
-            $pgp_mode = Crypt_GPG::SIGN_MODE_NORMAL;
-            break;
-*/
+
         default:
             if ($mime->isMultipart()) {
                 $pgp_mode = Crypt_GPG::SIGN_MODE_DETACHED;
@@ -220,7 +216,7 @@ class enigma_engine
             $message->setParam('text_charset', $text_charset);
         }
         else {
-            $mime->addPGPSignature($body);
+            $mime->addPGPSignature($body, $this->pgp_driver->signature_algorithm());
             $message = $mime;
         }
     }
@@ -429,11 +425,6 @@ class enigma_engine
     function parse_plain(&$p, $body = null)
     {
         $part = $p['structure'];
-
-        // exit, if we're already inside a decrypted message
-        if (in_array($part->mime_id, $this->encrypted_parts)) {
-            return;
-        }
 
         // Get message body from IMAP server
         if ($body === null) {
@@ -1205,6 +1196,11 @@ class enigma_engine
         }
         else {
             $body = $msg->get_part_body($part->mime_id, false);
+
+            // Convert charset to get rid of possible non-ascii characters (#5962)
+            if ($part->charset && stripos($part->charset, 'ASCII') === false) {
+                $body = rcube_charset::convert($body, $part->charset, 'US-ASCII');
+            }
         }
 
         return $body;

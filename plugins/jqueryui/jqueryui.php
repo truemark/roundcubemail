@@ -47,21 +47,6 @@ class jqueryui extends rcube_plugin
             $this->include_stylesheet("themes/larry/jquery-ui.css");
         }
 
-        if ($ui_theme == 'larry') {
-            // patch dialog position function in order to fully fit the close button into the window
-            $rcmail->output->add_script("jQuery.extend(jQuery.ui.dialog.prototype.options.position, {
-                using: function(pos) {
-                    var me = jQuery(this),
-                        offset = me.css(pos).offset(),
-                        topOffset = offset.top - 12;
-                    if (topOffset < 0)
-                        me.css('top', pos.top - topOffset);
-                    if (offset.left + me.outerWidth() + 12 > jQuery(window).width())
-                        me.css('left', pos.left - 12);
-                }
-            });", 'foot');
-        }
-
         // jquery UI localization
         $jquery_ui_i18n = $rcmail->config->get('jquery_ui_i18n', array('datepicker'));
         if (count($jquery_ui_i18n) > 0) {
@@ -72,15 +57,14 @@ class jqueryui extends rcube_plugin
                 if (file_exists($this->home . "/js/i18n/jquery.ui.$package-$lang_l.js")) {
                     $this->include_script("js/i18n/jquery.ui.$package-$lang_l.js");
                 }
-                else
-                if (file_exists($this->home . "/js/i18n/jquery.ui.$package-$lang_s.js")) {
+                else if (file_exists($this->home . "/js/i18n/jquery.ui.$package-$lang_s.js")) {
                     $this->include_script("js/i18n/jquery.ui.$package-$lang_s.js");
                 }
             }
         }
 
         // Date format for datepicker
-        $date_format = $rcmail->config->get('date_format', 'Y-m-d');
+        $date_format = $date_format_localized = $rcmail->config->get('date_format', 'Y-m-d');
         $date_format = strtr($date_format, array(
                 'y' => 'y',
                 'Y' => 'yy',
@@ -89,7 +73,19 @@ class jqueryui extends rcube_plugin
                 'd' => 'dd',
                 'j' => 'd',
         ));
+
+        $replaces = array('Y' => 'yyyy', 'y' => 'yy', 'm' => 'mm', 'd' => 'dd', 'j' => 'd', 'n' => 'm');
+
+        foreach (array_keys($replaces) as $key) {
+            if ($rcmail->text_exists("dateformat$key")) {
+                $replaces[$key] = $rcmail->gettext("dateformat$key");
+            }
+        }
+
+        $date_format_localized = strtr($date_format_localized, $replaces);
+
         $rcmail->output->set_env('date_format', $date_format);
+        $rcmail->output->set_env('date_format_localized', $date_format_localized);
     }
 
     public static function miniColors()
@@ -109,9 +105,14 @@ class jqueryui extends rcube_plugin
             $css = "plugins/jqueryui/themes/larry/jquery.minicolors.css";
         }
 
+        $colors_theme = $rcube->config->get('jquery_ui_colors_theme', 'default');
+        $config       = array('theme' => $colors_theme);
+        $config_str   = rcube_output::json_serialize($config);
+
         $rcube->output->include_css($css);
-        $rcube->output->add_header(html::tag('script', array('type' => "text/javascript", 'src' => $script)));
-        $rcube->output->add_script('$.fn.miniColors = $.fn.minicolors; $("input.colors").minicolors()', 'docready');
+        $rcube->output->add_header(html::tag('script', array('type' => 'text/javascript', 'src' => $script)));
+        $rcube->output->add_script('$.fn.miniColors = $.fn.minicolors; $("input.colors").minicolors(' . $config_str . ')', 'docready');
+        $rcube->output->set_env('minicolors_config', $config);
     }
 
     public static function tagedit()
@@ -127,11 +128,14 @@ class jqueryui extends rcube_plugin
         $ui_theme = self::$ui_theme;
         $css      = "plugins/jqueryui/themes/$ui_theme/tagedit.css";
 
-        if (!file_exists(INSTALL_PATH . $css)) {
-            $css = "plugins/jqueryui/themes/larry/tagedit.css";
+        if ($ui_theme != 'elastic') {
+            if (!file_exists(INSTALL_PATH . $css)) {
+                $css = "plugins/jqueryui/themes/larry/tagedit.css";
+            }
+
+            $rcube->output->include_css($css);
         }
 
-        $rcube->output->include_css($css);
         $rcube->output->add_header(html::tag('script', array('type' => "text/javascript", 'src' => $script)));
     }
 }

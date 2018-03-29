@@ -369,6 +369,7 @@
 {
   position: absolute;
   right: 0;
+  left: 0;
   top: 205px;
   bottom: 0px;
   border: 1px solid #999999;
@@ -1490,6 +1491,10 @@ input.from_address
   display: none;
 }
 
+#bounceheaders td.editfield {
+  width: 95%;
+}
+
 #compose-editorfooter
 {
   position: absolute;
@@ -1707,6 +1712,7 @@ input.from_address
   position: absolute;
   margin-right: 5px;
   right: 0;
+  top: 0;
 }
 
 #abookactions

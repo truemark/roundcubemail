@@ -455,7 +455,7 @@ class rcmail extends rcube
 
         // add some basic labels to client
         $this->output->add_label('loading', 'servererror', 'connerror', 'requesttimedout',
-            'refreshing', 'windowopenerror', 'uploadingmany');
+            'refreshing', 'windowopenerror', 'uploadingmany', 'close', 'save', 'cancel', 'alerttitle', 'confirmationtitle', 'delete', 'continue', 'ok');
 
         return $this->output;
     }
@@ -493,7 +493,7 @@ class rcmail extends rcube
     }
 
     /**
-     * Perfom login to the mail server and to the webmail service.
+     * Perform login to the mail server and to the webmail service.
      * This will also create a new user entry if auto_create_user is configured.
      *
      * @param string $username    Mail storage (IMAP) user name
@@ -537,8 +537,8 @@ class rcmail extends rcube
         // we'll only handle unset host (if possible)
         if (!$host && !empty($default_host)) {
             if (is_array($default_host)) {
-                list($key, $val) = each($default_host);
-                $host = is_numeric($key) ? $val : $key;
+                $key  = key($default_host);
+                $host = is_numeric($key) ? $default_host[$key] : $key;
             }
             else {
                 $host = $default_host;
@@ -678,8 +678,9 @@ class rcmail extends rcube
             $_SESSION['password']     = $this->encrypt($password);
             $_SESSION['login_time']   = time();
 
-            if (isset($_REQUEST['_timezone']) && $_REQUEST['_timezone'] != '_default_') {
-                $_SESSION['timezone'] = rcube_utils::get_input_value('_timezone', rcube_utils::INPUT_GPC);
+            $timezone = rcube_utils::get_input_value('_timezone', rcube_utils::INPUT_GPC);
+            if ($timezone && is_string($timezone) && $timezone != '_default_') {
+                $_SESSION['timezone'] = $timezone;
             }
 
             // fix some old settings according to namespace prefix
@@ -749,8 +750,8 @@ class rcmail extends rcube
 
             // take the first entry if $host is still not set
             if (empty($host)) {
-                list($key, $val) = each($default_host);
-                $host = is_numeric($key) ? $val : $key;
+                $key  = key($default_host);
+                $host = is_numeric($key) ? $default_host[$key] : $key;
             }
         }
         else if (empty($default_host)) {
@@ -1194,7 +1195,7 @@ class rcmail extends rcube
      *
      * @param mixed  $date    Date representation (string, timestamp or DateTime object)
      * @param string $format  Date format to use
-     * @param bool   $convert Enables date convertion according to user timezone
+     * @param bool   $convert Enables date conversion according to user timezone
      *
      * @return string Formatted date string
      */
@@ -1689,12 +1690,13 @@ class rcmail extends rcube
      * Try to localize the given IMAP folder name.
      * UTF-7 decode it in case no localized text was found
      *
-     * @param string $name      Folder name
-     * @param bool   $with_path Enable path localization
+     * @param string $name        Folder name
+     * @param bool   $with_path   Enable path localization
+     * @param bool   $path_remove Remove the path
      *
      * @return string Localized folder name in UTF-8 encoding
      */
-    public function localize_foldername($name, $with_path = false)
+    public function localize_foldername($name, $with_path = false, $path_remove = false)
     {
         $realnames = $this->config->get('show_real_foldernames');
 
@@ -1702,12 +1704,20 @@ class rcmail extends rcube
             return $this->gettext($folder_class);
         }
 
+        $storage   = $this->get_storage();
+        $delimiter = $storage->get_hierarchy_delimiter();
+
+        // Remove the path
+        if ($path_remove) {
+            if (strpos($name, $delimiter)) {
+                $path = explode($delimiter, $name);
+                $name = array_pop($path);
+            }
+        }
         // try to localize path of the folder
-        if ($with_path && !$realnames) {
-            $storage   = $this->get_storage();
-            $delimiter = $storage->get_hierarchy_delimiter();
-            $path      = explode($delimiter, $name);
-            $count     = count($path);
+        else if ($with_path && !$realnames) {
+            $path  = explode($delimiter, $name);
+            $count = count($path);
 
             if ($count > 1) {
                 for ($i = 1; $i < $count; $i++) {
@@ -1983,7 +1993,7 @@ class rcmail extends rcube
 
         $this->output->add_label('selectimage', 'addimage', 'selectmedia', 'addmedia');
         $this->output->set_env('editor_config', $config);
-        $this->output->include_css('program/js/tinymce/roundcube/browser.css');
+        $this->output->include_css('program/resources/tinymce/browser.css');
         $this->output->include_script('tinymce/tinymce.min.js');
         $this->output->include_script('editor.js');
     }
@@ -2155,8 +2165,9 @@ class rcmail extends rcube
             unset($attrib['buttons']);
             $form_attr['class'] = 'smart-upload';
             $input_attr = array_merge($input_attr, array(
-                // Note: Chrome sometimes executes onchange event on Cancel, make sure a file was selected
-                'onchange' => "if ((this.files && this.files.length) || (!this.files && this.value)) $event",
+                // #5854: Chrome does not execute onchange when selecting the same file.
+                //        To fix this we reset the input using null value.
+                'onchange' => "$event; this.value=null",
                 'class'    => 'smart-upload',
                 'tabindex' => '-1',
             ));
@@ -2321,6 +2332,15 @@ class rcmail extends rcube
      */
     public function show_bytes($bytes, &$unit = null)
     {
+        // Plugins may want to display different units
+        $plugin = $this->plugins->exec_hook('show_bytes', array('bytes' => $bytes));
+
+        $unit = $plugin['unit'];
+
+        if ($plugin['result'] !== null) {
+            return $plugin['result'];
+        }
+
         if ($bytes >= 1073741824) {
             $unit = 'GB';
             $gb   = $bytes/1073741824;

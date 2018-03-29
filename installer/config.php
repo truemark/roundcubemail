@@ -216,11 +216,11 @@ echo '<label for="cfgdebug4">Print errors (to the browser)</label><br />';
 <?php
 
 $select_log_driver = new html_select(array('name' => '_log_driver', 'id' => "cfglogdriver"));
-$select_log_driver->add(array('file', 'syslog'), array('file', 'syslog'));
+$select_log_driver->add(array('file', 'syslog', 'stdout'), array('file', 'syslog', 'stdout'));
 echo $select_log_driver->show($RCI->getprop('log_driver', 'file'));
 
 ?>
-<div>How to do logging? 'file' - write to files in the log directory, 'syslog' - use the syslog facility.</div>
+<div>How to do logging? 'file' - write to files in the log directory, 'syslog' - use the syslog facility, 'stdout' writes to the process' STDOUT file descriptor.</div>
 </dd>
 
 <dt class="propname">log_dir</dt>
@@ -476,7 +476,7 @@ $text_smtpport = new html_inputfield(array('name' => '_smtp_port', 'size' => 6, 
 echo $text_smtpport->show($RCI->getprop('smtp_port'));
 
 ?>
-<div>SMTP port (default is 25; 465 for SSL; 587 for submission)</div>
+<div>SMTP port (default is 587)</div>
 </dd>
 
 <dt class="propname">smtp_user/smtp_pass</dt>
@@ -673,8 +673,7 @@ echo $select_param_folding->show(strval($RCI->getprop('mime_param_folding')));
 
 <?php
 $plugins = $RCI->list_plugins();
-foreach($plugins as $p) 
-{
+foreach ($plugins as $p) {
     $p_check = new html_checkbox(array('name' => '_plugins_'.$p['name'], 'id' => 'cfgplugin_'.$p['name'], 'value' => $p['name']));
     echo '<dt class="propname"><label>';
     echo $p_check->show($p['enabled'] ? $p['name'] : 0);

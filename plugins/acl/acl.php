@@ -177,7 +177,7 @@ class acl extends rcube_plugin
         $this->rc->output->add_label('save', 'cancel');
         $this->include_script('acl.js');
         $this->rc->output->include_script('list.js');
-        $this->include_stylesheet($this->local_skin_path().'/acl.css');
+        $this->include_stylesheet($this->local_skin_path() . '/acl.css');
 
         // add Info fieldset if it doesn't exist
         if (!isset($args['form']['props']['fieldsets']['info']))
@@ -318,8 +318,10 @@ class acl extends rcube_plugin
 
         $textfield = new html_inputfield($attrib);
 
-        $fields['user'] = html::label(array('for' => $attrib['id']), $this->gettext('username'))
-            . ' ' . $textfield->show();
+        $fields['user'] = html::div('input-group',
+            html::span('input-group-prepend',
+                html::label(array('for' => $attrib['id'], 'class' => 'input-group-text'), $this->gettext('username')))
+            . ' ' . $textfield->show());
 
         // Add special entries
         if (!empty($this->specials)) {
@@ -452,7 +454,7 @@ class acl extends rcube_plugin
                     case 1: $class = 'partial'; break;
                     default: $class = 'disabled'; break;
                 }
-                $table->add('acl' . $key . ' ' . $class, '');
+                $table->add('acl' . $key . ' ' . $class, '<span></span>');
             }
 
             $js_table[$userid] = implode($userrights);
@@ -494,6 +496,13 @@ class acl extends rcube_plugin
                 if (!strpos($user, '@') && ($realm = $this->get_realm())) {
                     $user .= '@' . rcube_utils::idn_to_ascii(preg_replace('/^@/', '', $realm));
                 }
+
+                // Make sure it's valid email address to prevent from "disappearing folder"
+                // issue in Cyrus IMAP e.g. when the acl user identifier contains spaces inside.
+                if (strpos($user, '@') && !rcube_utils::check_email($user, false)) {
+                    $user = null;
+                }
+
                 $username = $user;
             }
 
@@ -611,7 +620,7 @@ class acl extends rcube_plugin
      * @param array $acl1 ACL rights array (or string)
      * @param array $acl2 ACL rights array (or string)
      *
-     * @param int Comparision result, 2 - full match, 1 - partial match, 0 - no match
+     * @param int Comparison result, 2 - full match, 1 - partial match, 0 - no match
      */
     function acl_compare($acl1, $acl2)
     {

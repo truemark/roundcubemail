@@ -66,7 +66,7 @@ $config['db_max_allowed_packet'] = null;
 // system error reporting, sum of: 1 = log; 4 = show
 $config['debug_level'] = 1;
 
-// log driver:  'syslog' or 'file'.
+// log driver:  'syslog', 'stdout' or 'file'.
 $config['log_driver'] = 'file';
 
 // date format for log entries
@@ -77,6 +77,9 @@ $config['log_date_format'] = 'd-M-Y H:i:s O';
 // set to 0 to avoid session IDs being logged.
 $config['log_session_id'] = 8;
 
+// Default extension used for log file name
+$config['log_file_ext'] = '.log';
+
 // Syslog ident string to use, if using the 'syslog' log driver.
 $config['syslog_id'] = 'roundcube';
 
@@ -85,7 +88,7 @@ $config['syslog_id'] = 'roundcube';
 $config['syslog_facility'] = LOG_USER;
 
 // Activate this option if logs should be written to per-user directories.
-// Data will only be logged if a directry <log_dir>/<username>/ exists and is writable.
+// Data will only be logged if a directory <log_dir>/<username>/ exists and is writable.
 $config['per_user_logging'] = false;
 
 // Log sent messages to <log_dir>/sendmail or to syslog
@@ -115,12 +118,15 @@ $config['memcache_debug'] = false;
 // Log APC conversation to <log_dir>/apc or to syslog
 $config['apc_debug'] = false;
 
+// Log Redis conversation to <log_dir>/redis or to syslog
+$config['redis_debug'] = false;
+
 
 // ----------------------------------
 // IMAP
 // ----------------------------------
 
-// The mail host chosen to perform the log-in.
+// The IMAP host chosen to perform the log-in.
 // Leave blank to show a textbox at login, give a list of hosts
 // to display a pulldown menu or set one host as string.
 // To use SSL/TLS connection, enter hostname with prefix ssl:// or tls://
@@ -137,8 +143,9 @@ $config['default_host'] = 'localhost';
 // TCP port used for IMAP connections
 $config['default_port'] = 143;
 
-// IMAP AUTH type (DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN or null to use
-// best server supported one)
+// IMAP authentication method (DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN or null).
+// Use 'IMAP' to authenticate with IMAP LOGIN command.
+// By default the most secure method (from supported) will be selected.
 $config['imap_auth_type'] = null;
 
 // IMAP socket context options
@@ -203,6 +210,11 @@ $config['imap_force_ns'] = false;
 // Enable this option to hide them and disable possibility to create such.
 $config['imap_skip_hidden_folders'] = false;
 
+// Some servers do not support folders with both folders and messages inside
+// If your server supports that use true, if it does not, use false.
+// By default it will be determined automatically (once per user session).
+$config['imap_dual_use_folders'] = null;
+
 // List of disabled imap extensions.
 // Use if your IMAP server has broken implementation of some feature
 // and you can't remove it from CAPABILITY string on server-side.
@@ -210,7 +222,7 @@ $config['imap_skip_hidden_folders'] = false;
 // Note: Because the list is cached, re-login is required after change.
 $config['imap_disabled_caps'] = array();
 
-// Log IMAP session identifers after each IMAP login.
+// Log IMAP session identifiers after each IMAP login.
 // This is used to relate IMAP session with Roundcube user sessions
 $config['imap_log_session'] = false;
 
@@ -239,7 +251,8 @@ $config['messages_cache_threshold'] = 50;
 // ----------------------------------
 
 // SMTP server host (for sending mails).
-// To use SSL/TLS connection, enter hostname with prefix ssl:// or tls://
+// Enter hostname with prefix tls:// to use STARTTLS, or use
+// prefix ssl:// to use the deprecated SSL over SMTP (aka SMTPS)
 // Supported replacement variables:
 // %h - user's IMAP hostname
 // %n - hostname ($_SERVER['SERVER_NAME'])
@@ -341,6 +354,9 @@ $config['memcache_max_allowed_packet'] = '2M';
 // Maximum size of an object in APC cache (in bytes). Default: 2MB
 $config['apc_max_allowed_packet'] = '2M';
 
+// Maximum size of an object in Redis cache (in bytes). Default: 2MB
+$config['redis_max_allowed_packet'] = '2M';
+
 
 // ----------------------------------
 // SYSTEM
@@ -350,7 +366,7 @@ $config['apc_max_allowed_packet'] = '2M';
 // ONLY ENABLE IT IF YOU'RE REALLY SURE WHAT YOU'RE DOING!
 $config['enable_installer'] = false;
 
-// don't allow these settings to be overriden by the user
+// don't allow these settings to be overridden by the user
 $config['dont_override'] = array();
 
 // List of disabled UI elements/actions
@@ -429,8 +445,9 @@ $config['login_rate_limit'] = 3;
 // Includes should be interpreted as PHP files
 $config['skin_include_php'] = false;
 
-// display software version on login screen
-$config['display_version'] = false;
+// display product name and software version on login screen
+// 0 - hide product name and version number, 1 - show product name only, 2 - show product name and version number
+$config['display_product_info'] = 1;
 
 // Session lifetime in minutes
 $config['session_lifetime'] = 10;
@@ -458,12 +475,20 @@ $config['session_path'] = null;
 // Setting this value to 'php' will use the default session save handler configured in PHP
 $config['session_storage'] = 'db';
 
-// check client IP in session authorization
-$config['ip_check'] = false;
-
 // List of trusted proxies
 // X_FORWARDED_* and X_REAL_IP headers are only accepted from these IPs
 $config['proxy_whitelist'] = array();
+
+// List of trusted host names
+// Attackers can modify Host header of the HTTP request causing $_SERVER['SERVER_NAME']
+// or $_SERVER['HTTP_HOST'] variables pointing to a different host, that could be used
+// to collect user names and passwords. Some server configurations prevent that, but not all.
+// An empty list accepts any host name. The list can contain host names
+// or PCRE patterns (without // delimiters, that will be added automatically).
+$config['trusted_host_patterns'] = array();
+
+// check client IP in session authorization
+$config['ip_check'] = false;
 
 // check referer of incoming requests
 $config['referer_check'] = false;
@@ -759,9 +784,6 @@ $config['spellcheck_ignore_nums'] = false;
 // Makes that words with symbols will be ignored (e.g. g@@gle)
 $config['spellcheck_ignore_syms'] = false;
 
-// Use this char/string to separate recipients when composing a new message
-$config['recipients_separator'] = ',';
-
 // Number of lines at the end of a message considered to contain the signature.
 // Increase this value if signatures are not properly detected and colored
 $config['sig_max_lines'] = 15;
@@ -942,9 +964,9 @@ $config['ldap_public']['Verisign'] = array(
                                     // Used where addressbook contains aliases to objects elsewhere in the LDAP tree.
 
   // definition for contact groups (uncomment if no groups are supported)
-  // for the groups base_dn, the user replacements %fu, %u, $d and %dc work as for base_dn (see above)
+  // for the groups base_dn, the user replacements %fu, %u, %d and %dc work as for base_dn (see above)
   // if the groups base_dn is empty, the contact base_dn is used for the groups as well
-  // -> in this case, assure that groups and contacts are separated due to the concernig filters! 
+  // -> in this case, assure that groups and contacts are separated due to the concernig filters!
   'groups'  => array(
     'base_dn'           => '',
     'scope'             => 'sub',       // Search mode: sub|base|list
@@ -1043,25 +1065,25 @@ $config['addressbook_pagesize'] = 50;
 // sort contacts by this col (preferably either one of name, firstname, surname)
 $config['addressbook_sort_col'] = 'surname';
 
-// the way how contact names are displayed in the list
-// 0: display name
-// 1: (prefix) firstname middlename surname (suffix)
-// 2: (prefix) surname firstname middlename (suffix)
-// 3: (prefix) surname, firstname middlename (suffix)
+// The way how contact names are displayed in the list.
+// 0: prefix firstname middlename surname suffix (only if display name is not set)
+// 1: firstname middlename surname
+// 2: surname firstname middlename
+// 3: surname, firstname middlename
 $config['addressbook_name_listing'] = 0;
 
 // use this timezone to display date/time
-// valid timezone identifers are listed here: php.net/manual/en/timezones.php
+// valid timezone identifiers are listed here: php.net/manual/en/timezones.php
 // 'auto' will use the browser's timezone settings
 $config['timezone'] = 'auto';
 
 // prefer displaying HTML messages
 $config['prefer_html'] = true;
 
-// display remote inline images
+// display remote resources (inline images, styles)
 // 0 - Never, always ask
 // 1 - Ask if sender is not in address book
-// 2 - Always show inline images
+// 2 - Always allow
 $config['show_images'] = 0;
 
 // open messages in new window
@@ -1148,6 +1170,7 @@ $config['autoexpand_threads'] = 0;
 // -1 - don't cite the original message
 // 0  - place cursor below the original message
 // 1  - place cursor above original message (top posting)
+// 2  - place cursor above original message (top posting), but do not indent the quote
 $config['reply_mode'] = 0;
 
 // When replying strip original signature from message

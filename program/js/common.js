@@ -58,21 +58,22 @@ function roundcube_browser()
   this.dom = document.getElementById ? true : false;
   this.dom2 = document.addEventListener && document.removeEventListener;
 
-  this.webkit = this.agent_lc.indexOf('applewebkit') > 0;
+  this.edge = this.agent_lc.indexOf(' edge/') > 0;
+  this.webkit = !this.edge && this.agent_lc.indexOf('applewebkit') > 0;
   this.ie = (document.all && !window.opera) || (this.win && this.agent_lc.indexOf('trident/') > 0);
 
   if (window.opera) {
     this.opera = true; // Opera < 15
     this.vendver = opera.version();
   }
-  else if (!this.ie) {
+  else if (!this.ie && !this.edge) {
     this.chrome = this.agent_lc.indexOf('chrome') > 0;
     this.opera = this.webkit && this.agent.indexOf(' OPR/') > 0; // Opera >= 15
     this.safari = !this.chrome && !this.opera && (this.webkit || this.agent_lc.indexOf('safari') > 0);
     this.konq = this.agent_lc.indexOf('konqueror') > 0;
     this.mz = this.dom && !this.chrome && !this.safari && !this.konq && !this.opera && this.agent.indexOf('Mozilla') >= 0;
-    this.iphone = this.safari && (this.agent_lc.indexOf('iphone') > 0 || this.agent_lc.indexOf('ipod') > 0);
-    this.ipad = this.safari && this.agent_lc.indexOf('ipad') > 0;
+    this.iphone = this.safari && (this.agent_lc.indexOf('iphone') > 0 || this.agent_lc.indexOf('ipod') > 0 || this.platform == 'ipod' || this.platform == 'iphone');
+    this.ipad = this.safari && (this.agent_lc.indexOf('ipad') > 0 || this.platform == 'ipad');
   }
 
   if (!this.vendver) {
@@ -88,9 +89,10 @@ function roundcube_browser()
   if (this.safari && (/;\s+([a-z]{2})-[a-z]{2}\)/.test(this.agent_lc)))
     this.lang = RegExp.$1;
 
-  this.tablet = /ipad|android|xoom|sch-i800|playbook|tablet|kindle/i.test(this.agent_lc);
   this.mobile = /iphone|ipod|blackberry|iemobile|opera mini|opera mobi|mobile/i.test(this.agent_lc);
+  this.tablet = !this.mobile && /ipad|android|xoom|sch-i800|playbook|tablet|kindle/i.test(this.agent_lc);
   this.touch = this.mobile || this.tablet;
+  this.pointer = typeof window.PointerEvent == "function";
   this.cookies = n.cookieEnabled;
 
   // test for XMLHTTP support
@@ -108,7 +110,9 @@ function roundcube_browser()
     var classname = ' js';
 
     if (this.ie)
-      classname += ' ie ie'+parseInt(this.vendver);
+      classname += ' ms ie ie'+parseInt(this.vendver);
+    else if (this.edge)
+      classname += ' ms edge';
     else if (this.opera)
       classname += ' opera';
     else if (this.konq)
@@ -147,7 +151,7 @@ var rcube_event = {
 get_target: function(e)
 {
   e = e || window.event;
-  return e && e.target ? e.target : e.srcElement;
+  return e && e.target ? e.target : e.srcElement || document;
 },
 
 /**
@@ -279,10 +283,13 @@ cancel: function(evt)
  */
 is_keyboard: function(e)
 {
-  return e && (
-      (e.type && String(e.type).match(/^key/)) // DOM3-compatible
-      || (!e.pageX && (e.pageY || 0) <= 0 && !e.clientX && (e.clientY || 0) <= 0) // others
-    );
+  if (!e)
+    return false;
+
+  if (e.type)
+    return !!e.type.match(/^key/); // DOM3-compatible
+
+  return !e.pageX && (e.pageY || 0) <= 0 && !e.clientX && (e.clientY || 0) <= 0;
 },
 
 /**
@@ -607,6 +614,18 @@ if (!String.prototype.startsWith) {
   String.prototype.startsWith = function(search, position) {
     position = position || 0;
     return this.slice(position, search.length) === search;
+  };
+}
+
+if (!String.prototype.endsWith) {
+  String.prototype.endsWith = function(searchString, position) {
+    var subjectString = this.toString();
+    if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+      position = subjectString.length;
+    }
+    position -= searchString.length;
+    var lastIndex = subjectString.lastIndexOf(searchString, position);
+    return lastIndex !== -1 && lastIndex === position;
   };
 }
 

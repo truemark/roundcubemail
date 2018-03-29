@@ -25,9 +25,10 @@ define('PASSWORD_CRYPT_ERROR', 1);
 define('PASSWORD_ERROR', 2);
 define('PASSWORD_CONNECT_ERROR', 3);
 define('PASSWORD_IN_HISTORY', 4);
+define('PASSWORD_CONSTRAINT_VIOLATION', 5);
 define('PASSWORD_SUCCESS', 0);
-define('USERNAME_INVALID', 5);
-define('USERNAME_NOTFOUND', 6);
+define('USERNAME_INVALID', 6);
+define('USERNAME_NOTFOUND', 7);
 
 /**
  * Change password plugin
@@ -215,7 +216,7 @@ class password extends rcube_plugin
         $rcmail->output->set_env('product_name', $rcmail->config->get('product_name'));
         $rcmail->output->set_env('password_disabled', !empty($form_disabled));
 
-        $table = new html_table(array('cols' => 2));
+        $table = new html_table(array('cols' => 2, 'class' => 'propform'));
 
         $field_id = 'api_url';
         $input_url = new html_hiddenfield(array(
@@ -304,10 +305,10 @@ class password extends rcube_plugin
         $submit_button = $rcmail->output->button(array(
                 'command' => 'plugin.password-save',
                 'type'    => 'input',
-                'class'   => 'button mainaction',
+                'class'   => 'button mainaction submit',
                 'label'   => 'save',
         ));
-        $form_buttons = html::p(array('class' => 'formbuttons'), $submit_button);
+        $form_buttons = html::p(array('class' => 'formbuttons footerleft'), $submit_button);
 
         $out = html::div(array('class' => 'box'),
             html::div(array('id' => 'prefs-title', 'class' => 'boxtitle'), $this->gettext('changepasswd'))

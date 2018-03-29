@@ -187,22 +187,20 @@ $OUTPUT->add_label('deletefolderconfirm', 'purgefolderconfirm', 'folderdeleting'
 
 // register UI objects
 $OUTPUT->add_handlers(array(
-    'foldersubscription' => 'rcmail_subscription_form',
+    'foldersubscription' => 'rcmail_folder_subscriptions',
     'folderframe'        => 'rcmail_folder_frame',
     'folderfilter'       => 'rcmail_folder_filter',
     'quotadisplay'       => array($RCMAIL, 'quota_display'),
+    'searchform'         => array($OUTPUT, 'search_form'),
 ));
 
 $OUTPUT->send('folders');
 
 
 // build table with all folders listed by server
-function rcmail_subscription_form($attrib)
+function rcmail_folder_subscriptions($attrib)
 {
     global $RCMAIL, $OUTPUT;
-
-    list($form_start, $form_end) = get_form_tags($attrib, 'folders');
-    unset($attrib['form']);
 
     if (!$attrib['id']) {
         $attrib['id'] = 'rcmSubscriptionlist';
@@ -277,12 +275,13 @@ function rcmail_subscription_form($attrib)
     foreach ($list_folders as $i => $folder) {
         $sub_key    = array_search($folder['id'], $a_subscribed);
         $subscribed = $sub_key !== false;
-        $protected  = $folder['id'] == 'INBOX' || ($protect_default && isset($special_folders[$folder['id']]));
+        $special    = $folder['id'] == 'INBOX' || isset($special_folders[$folder['id']]);
+        $protected  = $folder['id'] == 'INBOX' || ($protect_default && $special);
         $noselect   = false;
         $classes    = array();
 
         $folder_utf8    = rcube_charset::convert($folder['id'], 'UTF7-IMAP');
-        $display_folder = rcube::Q($protected ? $RCMAIL->localize_foldername($folder['id']) : $folder['name']);
+        $display_folder = rcube::Q($special ? $RCMAIL->localize_foldername($folder['id'], false, true) : $folder['name']);
 
         if ($folder['virtual']) {
             $classes[] = 'virtual';
@@ -389,7 +388,7 @@ function rcmail_subscription_form($attrib)
     $OUTPUT->set_env('collapsed_folders', $collapsed);
     $OUTPUT->set_env('delimiter', $delimiter);
 
-    return $form_start . html::tag('ul', $attrib, implode('', $folders), html::$common_attrib) . $form_end;
+    return html::tag('ul', $attrib, implode('', $folders), html::$common_attrib);
 }
 
 function rcmail_folder_tree_element($folders, &$key, &$js_folders)
